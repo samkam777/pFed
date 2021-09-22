@@ -25,16 +25,18 @@ class FedAvg(Server):
 
             self.selected_users = self.select_users(glob_iter,self.num_users)
             epsilons_list = []
+            losses = []
             for user in self.selected_users:
                 if self.if_DP:
-                    _, epsilons = user.train(glob_iter) #* user.train_samples
+                    train_loss, epsilons = user.train(glob_iter) #* user.train_samples
                     epsilons_list.append(epsilons)
+                    losses.append(train_loss)
                 else:
                     user.train(glob_iter) #* user.train_samples
 
             print("")
             print("Evaluate average model")
-            self.evaluate(glob_iter)
+            self.evaluate(glob_iter, losses)
 
             self.aggregate_parameters()
 

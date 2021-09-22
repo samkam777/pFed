@@ -147,40 +147,27 @@ class Server:
 
 
     # FedAvg
-    def evaluate(self, epoch):
+    def evaluate(self, epoch, losses):
         stats = self.test()
-        stats_train = self.train_error_and_loss()
+        # stats_train = self.train_error_and_loss()
 
         HR = sum(stats[1]) / len(stats[1])
         NDCG = sum(stats[2]) / len(stats[2])
-        train_loss = sum(stats_train[1]) / len(stats_train[1])
-        # self.rs_train_loss.append(train_loss)
-        # self.rs_HR.append(HR)
-        # self.rs_NDCG.append(NDCG) 
+        train_loss = sum(losses) / len(losses)
 
-        # print("Average Global HR: ", HR)
-        # print("Average Global NDCG: ", NDCG)
-        # print("Average Global Trainning Loss: ",train_loss)
         print("Average server   loss:{:.4f}   HR: {:.4f}   NDCG: {:.4f}\t".format(train_loss, HR, NDCG))
 
         server_logging(epoch, train_loss, HR, NDCG, self.running_time, self.hyper_param)
 
     # pFedMe
-    def evaluate_personalized_model(self, epoch):
+    def evaluate_personalized_model(self, epoch, losses):
         stats = self.test_persionalized_model()  
-        stats_train = self.train_error_and_loss_persionalized_model()
+        # stats_train = self.train_error_and_loss_persionalized_model()
 
         HR = sum(stats[1]) / len(stats[1])
         NDCG = sum(stats[2]) / len(stats[2])
-        train_loss = sum(stats_train[1]) / len(stats_train[1])
+        train_loss = sum(losses) / len(losses)
 
-        # self.rs_train_loss_per.append(train_loss)
-        # self.rs_HR_per.append(HR)
-        # self.rs_NDCG_per.append(NDCG) 
-
-        # print("Average Personal HR: ", HR)
-        # print("Average Personal NDCG: ", NDCG)
-        # print("Average Personal Trainning Loss: ",train_loss)
         print("Personal server   loss:{:.4f}   HR: {:.4f}   NDCG: {:.4f}\t".format(train_loss, HR, NDCG))
 
         server_logging(epoch, train_loss, HR, NDCG, self.running_time, self.hyper_param)

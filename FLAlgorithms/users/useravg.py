@@ -81,16 +81,15 @@ class UserAVG(User):
         train_loss = sum(losses) / len(losses)
 
         # evaluate
-        self.user_evaluate(epochs)
+        self.user_evaluate(epochs, train_loss)
 
         # calculate privacy budget
         if self.if_DP:
             self.privacy_engine.steps = epochs+1
             epsilons, _ = self.privacy_engine.get_privacy_spent(self.delta)
-            print("training epochs {}  client {}  loss: {:.4f}  epsilons:{:.4f}\t".format(epochs, self.id, train_loss, epsilons))
+            print("training epochs {}  client {}  epsilons:{:.4f}\t".format(epochs, self.id, epsilons))
             return train_loss, epsilons
         else:
-            print("training epochs {} client {}  loss: {:.4f} \t".format(epochs, self.id, train_loss))
             return train_loss
 
 

@@ -45,6 +45,8 @@ class User:
         self.if_DP = args.if_DP
         self._subsample = args._subsample
 
+        self.loss_reduction = args.loss_reduction
+
 ############## get and set users' parameters ##############
     def set_parameters(self, model):
         for old_param, new_param, p_local_param, local_param in zip(self.model.parameters(), model.parameters(), self.p_local_model.parameters(), self.local_model):
@@ -144,8 +146,8 @@ class User:
             user, item, label = user.to(self.device), item.to(self.device), label.to(self.device)
             prediction = self.model(user, item)
 
-            reg_loss = self.reg_loss(self.model, self.p_local_model)
-            loss = self.loss(prediction, label, reg_loss)
+            # reg_loss = self.reg_loss(self.model, self.p_local_model)
+            loss = self.loss(prediction, label)
             losses.append(loss.item())
 
         #self.update_parameters(self.local_model)
@@ -179,17 +181,17 @@ class User:
 
 ###################### user evaluate ######################
     # pFedMe
-    def user_persionalized_evaluate(self, epoch):
+    def user_persionalized_evaluate(self, epoch, train_loss):
         HR, NDCG = self.test_persionalized_model()
-        train_loss = self.train_error_and_loss_persionalized_model()
+        # train_loss = self.train_error_and_loss_persionalized_model()
 
         print("user: {}   loss:{:.4f}   HR: {:.4f}   NDCG: {:.4f}\t".format(self.id, train_loss, HR, NDCG))
 
         user_logging(epoch, self.id, train_loss, HR, NDCG, self.running_time, self.hyper_param)
 
-    def user_evaluate(self, epoch):
+    def user_evaluate(self, epoch, train_loss):
         HR, NDCG = self.test()
-        train_loss = self.train_error_and_loss()
+        # train_loss = self.train_error_and_loss()
 
         print("user: {}   loss:{:.4f}   HR: {:.4f}   NDCG: {:.4f}\t".format(self.id, train_loss, HR, NDCG))
 

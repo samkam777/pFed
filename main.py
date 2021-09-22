@@ -34,7 +34,7 @@ def main():
 		help="Seed")
 	parser.add_argument("--lr", 
 		type=float, 
-		default=0.75, 
+		default=0.01, 
 		help="learning rate")
 	parser.add_argument("--dropout", 
 		type=float,
@@ -46,7 +46,7 @@ def main():
 		help="batch size for training")
 	parser.add_argument("--epochs", 
 		type=int,
-		default=80,  
+		default=60,  
 		help="training epoches")
 	parser.add_argument("--top_k", 
 		type=int, 
@@ -90,7 +90,7 @@ def main():
 		help="Persionalized learning rate to caculate theta aproximately using K steps")
 	parser.add_argument("--lamda",
 		type=float,
-		default=1.0,
+		default=0.0001,
 		help="Regularization term")
 	parser.add_argument("--K",
 		type=int,
@@ -141,6 +141,10 @@ def main():
         type=str, 
         default="2021-00-00-00-00-00", 
         help="running time")
+	parser.add_argument("--loss_reduction", 
+        type=str, 
+        default="mean", 
+		choices=["mean", "sum"])
 	
 
 	# set device and parameters
@@ -151,7 +155,7 @@ def main():
 	util.seed_everything(args.seed)
 
 	# hyper-parameter
-	hyper_param = "_balance_" + str(args._balance) + "_user_" + str(args.seg_data) + "_DP_" + str(args.if_DP) + "_algorithm_" + str(args.algorithm) + "_GlobalLr_" + str(args.lr) + "_PersonalLr_" + str(args.personal_learning_rate) + "_lamda_" + str(args.lamda) +"_"
+	hyper_param = "_balance_" + str(args._balance) + "_user_" + str(args.seg_data) + "_DP_" + str(args.if_DP) + "_algorithm_" + str(args.algorithm) + "_GlobalLr_" + str(args.lr) + "_PersonalLr_" + str(args.personal_learning_rate) + "_lamda_" + str(args.lamda) + "_loss_reduction_" + str(args.loss_reduction) + "_"
 	print("hyper_param: {}\t".format(hyper_param))
 	
 
@@ -161,7 +165,7 @@ def main():
 		if args._running_time != "2021-00-00-00-00-00":
 			running_time = args._running_time			# get time from *.sh file 
 		else:
-			running_time = time.strftime("%Y-%m-%d %H-%M-%S", time.localtime())		# get the present time
+			running_time = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())		# get the present time
 		print("running time: {}".format(running_time))
 
 		# load client train data and test data

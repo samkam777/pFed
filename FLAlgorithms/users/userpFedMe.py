@@ -6,10 +6,8 @@ import json
 import copy
 import numpy as np
 from FLAlgorithms.optimizers.fedoptimizer import pFedMeOptimizer, pFedMeAdamOptimizer
-from FLAlgorithms.optimizers.regularization import Regularization
 from FLAlgorithms.users.userbase import User
 import torch.optim as optim
-from FLAlgorithms.optimizers.loss_function import pFedMe_BCELoss
 
 from m_opacus.dp_model_inspector import DPModelInspector
 from m_opacus.utils import module_modification
@@ -19,15 +17,12 @@ from m_opacus import PrivacyEngine
 class UserpFedMe(User):
     def __init__(self, device, args, model, train_data, test_data, train_data_samples, numeric_id, running_time, hyper_param):
         super().__init__(device, args, model, train_data, test_data, train_data_samples, numeric_id, running_time, hyper_param)
-        self.total_users = args.seg_data
 
-        #self.loss = nn.BCELoss()
-        self.loss = pFedMe_BCELoss()
+        self.loss = nn.BCELoss(reduction=self.loss_reduction).to(device)
         self.K = args.K
         self.personal_learning_rate = args.personal_learning_rate
-        self.optimizer = pFedMeAdamOptimizer(self.model.parameters(), lr=self.personal_learning_rate, lamda=self.lamda)
+        self.optimizer = pFedMeAdamOptimizer(self.model.parameters(), lr=self.personal_learning_rate, lamda=0)
 
-        self.reg_loss = Regularization(self.model, self.p_local_model, weight_decay=self.lamda, p=2).to(device)
         if self.if_DP:
             self.privacy_engine = PrivacyEngine(
                 self.model,
@@ -61,7 +56,6 @@ class UserpFedMe(User):
         #real_times = self.virtual_batch_size / self.batch_size     # virtual step setting parameter
         #print("real_times:{}\t".format(real_times))
         for epoch in range(1, self.local_epochs + 1):  # local update
-            #self.model.train()
             
             user, item, label = self.get_next_train_batch()  
             #for index, (user, item, label) in enumerate(self.trainloader):
@@ -81,9 +75,23 @@ class UserpFedMe(User):
             # K is number of personalized steps
             for i in range(self.K):  
                 output = self.model(user, item)
-                reg_loss = self.reg_loss(self.model, self.p_local_model)
-                loss = self.loss(output, label, reg_loss)
-                loss.backward()
+
+                reg_loss = torch.tensor(0.).to(self.device)
+                for p, local_p in zip(self.model.parameters(), self.p_local_model.parameters()):
+                    reg_loss += (torch.norm(p-local_p, p=2)) ** 2
+                # reg_loss = reg_loss.mean()
+
+                if epoch == 2:
+                    print("reg_loss:{}\t".format(reg_loss))
+
+                loss = self.loss(output, label)
+                pfedloss = loss + self.lamda*reg_loss
+
+                if epoch == 2:
+                    print("pfedloss:{}\t".format(pfedloss))
+
+                pfedloss.backward()
+
 
                 if self.if_DP:
                 # 只有最后一个epoch加噪声
@@ -104,14 +112,14 @@ class UserpFedMe(User):
                         self.optimizer.virtual_step()
                     '''
                 else:
-                    self.optimizer.step()
+                    self.optimizer.step(self.p_local_model)
                     self.optimizer.zero_grad()
 
                 # loss
-                losses.append(loss.item())
+                losses.append(pfedloss.item())
 
-        for new_param, localweight in zip(self.model.parameters(), self.p_local_model.parameters()):
-            localweight.data = localweight.data - self.lamda* self.learning_rate * (localweight.data - new_param.data)  
+            for new_param, localweight in zip(self.model.parameters(), self.p_local_model.parameters()):
+                localweight.data = localweight.data - self.learning_rate * (localweight.data - new_param.data)  
 
         #update local model as local_weight_upated
         self.update_parameters(self.p_local_model.parameters())
@@ -120,16 +128,15 @@ class UserpFedMe(User):
         train_loss = sum(losses) / len(losses)
 
         # evaluate
-        self.user_persionalized_evaluate(epochs)
+        self.user_persionalized_evaluate(epochs, train_loss)
         
         # calculate privacy budget
         if self.if_DP:
             self.privacy_engine.steps = epochs+1
             epsilons, _ = self.privacy_engine.get_privacy_spent(self.delta)
-            print("training epochs {}  client {}  loss: {:.4f}  epsilons:{:.4f}\t".format(epochs, self.id, train_loss, epsilons))
+            print("training epochs {}  client {}  epsilons:{:.4f}\t".format(epochs, self.id, epsilons))
             return train_loss, epsilons
         else:
-            print("training epochs {} client {}  loss: {:.4f} \t".format(epochs, self.id, train_loss))
             return train_loss
 
 

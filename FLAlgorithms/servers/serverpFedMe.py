@@ -22,19 +22,22 @@ class pFedMe(Server):
         self.total_train_samples = total_train_data_sample
 
     def train(self):
-        losses = []
+        
         
         for glob_iter in range(self.num_glob_iters):
             print("--------------------------global iter: ",glob_iter, " --------------------------")
 
             epsilons_list = []
+            losses = []
             # do update for all users not only selected users
             for user in self.users:
                 if self.if_DP:
-                    _, epsilons = user.train(glob_iter) # user.train_samples
+                    train_loss, epsilons = user.train(glob_iter) # user.train_samples
                     epsilons_list.append(epsilons)
+                    losses.append(train_loss)
                 else:
-                    user.train(glob_iter) # user.train_samples
+                    train_loss = user.train(glob_iter) # user.train_samples
+                    losses.append(train_loss)
 
             # choose several users to send back upated model to server
             self.selected_users = self.select_users(glob_iter,self.num_users)
@@ -42,7 +45,7 @@ class pFedMe(Server):
             # Evaluate personalized model on user for each interation
             print("")
             print("Evaluate personalized model")
-            self.evaluate_personalized_model(glob_iter)         # 验证的是更新模型前的
+            self.evaluate_personalized_model(glob_iter, losses)         # 验证的是更新模型前的
             
             self.persionalized_aggregate_parameters()
 
