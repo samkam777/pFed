@@ -79,17 +79,9 @@ class UserpFedMe(User):
                 reg_loss = torch.tensor(0.).to(self.device)
                 for p, local_p in zip(self.model.parameters(), self.p_local_model.parameters()):
                     reg_loss += (torch.norm(p-local_p, p=2)) ** 2
-                # reg_loss = reg_loss.mean()
-
-                if epoch == 2:
-                    print("reg_loss:{}\t".format(reg_loss))
 
                 loss = self.loss(output, label)
                 pfedloss = loss + self.lamda*reg_loss
-
-                if epoch == 2:
-                    print("pfedloss:{}\t".format(pfedloss))
-
                 pfedloss.backward()
 
 
